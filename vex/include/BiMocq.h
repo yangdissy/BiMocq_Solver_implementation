@@ -1,14 +1,73 @@
 #ifndef _BiMocq_
 #define _BiMocq_
 
-struct BimocqGlobal{
-	int velReinit = 0;
-    int scalarReinit = 0;
-	float volumesize = 0.1;
-	float substep = 0.04666;
+// struct BimocqGlobal{
+// 	int velReinit = 0;
+//     int scalarReinit = 0;
+// 	float volumesize = 0.1;
+// 	float substep = 0.04666;
+// }
+
+vector volumegradientv(int _VolumeN;string _Volumename;vector _Pos){
+	// vector Du = volumegradient(_VolumeN,_Volumename +'.x',_Pos);
+	// vector Dv = volumegradient(_VolumeN,_Volumename +'.y',_Pos);
+	// vector Dw = volumegradient(_VolumeN,_Volumename +'.z',_Pos);
+
+	// return Du+Dv+Dw;
+	vector pos = _Pos;
+	int evaluations = 8;
+	float weight = 1.0/float(evaluations);
+	vector sum = set(0, 0, 0);
+	vector index = volumepostoindex(_VolumeN, _Volumename +'.x', pos);
+	vector offset[];
+	offset[0] = set(index.x+1, index.y+1, index.z+1);
+	offset[1] = set(index.x+1, index.y+1, index.z-1);
+	offset[2] = set(index.x+1, index.y-1, index.z+1);
+	offset[3] = set(index.x+1, index.y-1, index.z-1);
+	offset[4] = set(index.x-1, index.y+1, index.z+1);
+	offset[5] = set(index.x-1, index.y+1, index.z-1);
+	offset[6] = set(index.x-1, index.y-1, index.z+1);
+	offset[7] = set(index.x-1, index.y-1, index.z-1);
+
+	for (int i = 0; i < evaluations; ++i){
+		/* code */
+		vector voxel_pos = volumeindextopos(_VolumeN, _Volumename +'.x',offset[i]);
+		vector Dvel = weight * volumesamplev(_VolumeN, _Volumename, voxel_pos);
+		sum = sum + Dvel;
+	}
+	return sum;
+
 }
+float volumegradient(int _VolumeN;string _Volumename;vector _Pos){
+	// vector Du = volumegradient(_VolumeN,_Volumename +'.x',_Pos);
+	// vector Dv = volumegradient(_VolumeN,_Volumename +'.y',_Pos);
+	// vector Dw = volumegradient(_VolumeN,_Volumename +'.z',_Pos);
 
+	// return Du+Dv+Dw;
+	vector pos = _Pos;
+	int evaluations = 8;
+	float weight = 1.0/float(evaluations);
+	float sum = 0;
+	vector index = volumepostoindex(_VolumeN, _Volumename, pos);
+	vector offset[];
+	offset[0] = set(index.x+1, index.y+1, index.z+1);
+	offset[1] = set(index.x+1, index.y+1, index.z-1);
+	offset[2] = set(index.x+1, index.y-1, index.z+1);
+	offset[3] = set(index.x+1, index.y-1, index.z-1);
+	offset[4] = set(index.x-1, index.y+1, index.z+1);
+	offset[5] = set(index.x-1, index.y+1, index.z-1);
+	offset[6] = set(index.x-1, index.y-1, index.z+1);
+	offset[7] = set(index.x-1, index.y-1, index.z-1);
 
+	for (int i = 0; i < evaluations; ++i){
+		/* code */
+		vector voxel_pos = volumeindextopos(_VolumeN, _Volumename,offset[i]);
+		float Dvel = weight * volumesample(_VolumeN, _Volumename, voxel_pos);
+		sum = sum + Dvel;
+	}
+	return sum;
+
+}
 vector AdvectVectorDMC(int _Velnumber;string _Velname; vector _Pos;float _volumesize;float _substep){
 
 	float h = _volumesize;
@@ -89,9 +148,18 @@ vector AdvectVelocity(int _Velinitnumber;string _Velinitname;int _backwardvN;str
 	vector pos = _Pos;
 	vector backwardv = volumesamplev(_backwardvN, _backwardvname, pos);
 	vector finalpos = pos - backwardv * _substep;
-	vector Vgradent = volumegradient(_Velinitnumber, _Velinitname, finalpos);
+	vector Vgradent = volumegradientv(_Velinitnumber, _Velinitname, finalpos);
 	vector BackwardVel = volumesamplev(_Velinitnumber, _Velinitname, finalpos);
-	vector Value = 0.5 * Vgradent + 0.5 * BackwardVel;
+	vector Value = 0.5 * BackwardVel + 0.5 * Vgradent;
+	return Value; 
+}
+float AdvectField(int _Fieldinitnumber;string _Fieldinitname;int _backwardvN;string _backwardvname;float _substep;vector _Pos;){
+	vector pos = _Pos;
+	vector backwardv = volumesamplev(_backwardvN, _backwardvname, pos);
+	vector finalpos = pos - backwardv * _substep;
+	float  Vgradent = volumegradient(_Fieldinitnumber, _Fieldinitname, finalpos);
+	vector BackwardVel = volumesample(_Fieldinitnumber, _Fieldinitname, finalpos);
+	float  Value = 0.5 * BackwardVel + 0.5 * Vgradent;
 	return Value; 
 }
 vector cumulateVelocity(int _VolumeN;string _Volumename;int _backwardvN;string _backwardvname;float _substep;vector _Pos){
@@ -99,15 +167,28 @@ vector cumulateVelocity(int _VolumeN;string _Volumename;int _backwardvN;string _
 	float coeff = 1.0;
 	
 	vector backwardv = volumesamplev(_backwardvN,_backwardvname,pos);
-	vector finalpos = pos - backwardv * _substep;
-	vector dvelinit = coeff * volumegradient(_VolumeN, _Volumename, finalpos);
+	vector finalpos = pos + backwardv * _substep;
+	vector dvelinit = coeff * volumegradientv(_VolumeN, _Volumename, finalpos);
 	vector velinit = coeff * volumesamplev(_VolumeN, _Volumename, finalpos);
 	vector sum =  0.5 * velinit + 0.5 * dvelinit;
 	//vector dvelcity_init = dvelcity_init + sum;
 
 	return sum;
 }
-vector compensateVelocity(int _Velnumber;string _Velname;int _forwardvN;string _forwardvname;float _substep;vector _Pos){
+float cumulateField(int _Fieldinitnumber;string _Fieldinitname;int _backwardvN;string _backwardvname;float _substep;vector _Pos){
+	vector pos = _Pos;
+	float coeff = 1.0;
+	
+	vector backwardv = volumesamplev(_backwardvN,_backwardvname,pos);
+	vector finalpos = pos - backwardv * _substep;
+	float dvelinit = coeff * volumegradient(_Fieldinitnumber, _Fieldinitname, finalpos);
+	float velinit = coeff * volumesample(_Fieldinitnumber, _Fieldinitname, finalpos);
+	float sum =  0.5 * velinit + 0.5 * dvelinit;
+	//vector dvelcity_init = dvelcity_init + sum;
+
+	return sum;
+}
+vector compensateVelocity(int _Velnumber;string _Velname;int _Velinitnumber;string _Velinitname;int _forwardvN;string _forwardvname;float _substep;vector _Pos){
 	vector pos = _Pos;
 	vector forwardv = volumesamplev(_forwardvN, _forwardvname, pos);
 	vector finalpos = pos + forwardv * _substep;
@@ -115,9 +196,22 @@ vector compensateVelocity(int _Velnumber;string _Velname;int _forwardvN;string _
 	//vector forwardpos = forwardvel * _substep + pos;
 	//vector forwardvel = volumesamplev(_forwardvN, _forwardvname, pos);
 	vector currentvel = volumesamplev(_Velnumber,_Velname,finalpos);
-	vector dcurrentvel = volumegradient(_Velnumber,_Velname,finalpos);
+	vector dcurrentvel = volumegradientv(_Velnumber,_Velname,finalpos);
 	vector sum = 0.5*currentvel + 0.5*dcurrentvel;
-	vector Vtemp = sum - volumegradient(_Velnumber, _Velname, pos);
+	vector Vtemp = sum - volumesamplev(_Velinitnumber, _Velinitname, pos);
+	return Vtemp;
+}
+vector compensatefield(int _Fieldinitnumber;string _Fieldinitname;int _forwardvN;string _forwardvname;float _substep;vector _Pos){
+	vector pos = _Pos;
+	vector forwardv = volumesamplev(_forwardvN, _forwardvname, pos);
+	vector finalpos = pos - forwardv * _substep;
+	//vector dforward = volumegradient(_forwardvN, _forwardvname, pos);
+	//vector forwardpos = forwardvel * _substep + pos;
+	//vector forwardvel = volumesamplev(_forwardvN, _forwardvname, pos);
+	float currentvel = volumesample(_Fieldinitnumber,_Fieldinitname,finalpos);
+	float dcurrentvel = volumegradient(_Fieldinitnumber,_Fieldinitname,finalpos);
+	float sum = 0.5*currentvel + 0.5*dcurrentvel;
+	float Vtemp = sum - volumesample(_Fieldinitnumber, _Fieldinitname, pos);
 	return Vtemp;
 }
 vector DoubleAdvectVelocity(int _Velnumber;string _Velname;int _backwardPrevN;string __backwardPrevname ;int _backwardvN;string _backwardvname;float _substep;vector _Pos;float _blend_coeff){
@@ -127,8 +221,8 @@ vector DoubleAdvectVelocity(int _Velnumber;string _Velname;int _backwardPrevN;st
 	vector midpos = pos - backwardv * _substep;
 	vector backwardprev = volumesamplev(_backwardPrevN, __backwardPrevname, midpos);
 	vector finalpos = midpos - backwardprev * _substep;
-	vector dveltemp = volumegradient(_Velnumber, _Velname, finalpos);
-	vector veltemp = volumesample(_Velnumber, _Velname, finalpos);
+	vector dveltemp = volumegradientv(_Velnumber, _Velname, finalpos);
+	vector veltemp = volumesamplev(_Velnumber, _Velname, finalpos);
 	vector prev_value = 0.5 * (dveltemp + veltemp);
 	//vector vel = volumesample(_Velnumber, _Velname, finalpos);
 	//vel = vel * blend_coeff + (1.0-blend_coeff) * prev_value;
@@ -136,7 +230,22 @@ vector DoubleAdvectVelocity(int _Velnumber;string _Velname;int _backwardPrevN;st
 	return prev_value;
 	
 }
+float DoubleAdvectVelocity(int _Fieldinitnumber;string _Fieldinitname;int _backwardPrevN;string __backwardPrevname ;int _backwardvN;string _backwardvname;float _substep;vector _Pos;float _blend_coeff){
+	vector pos = _Pos;
+	float blend_coeff = _blend_coeff;
+	vector backwardv = volumesample(_backwardvN, _backwardvname, pos);
+	vector midpos = pos - backwardv * _substep;
+	vector backwardprev = volumesamplev(_backwardPrevN, __backwardPrevname, midpos);
+	vector finalpos = midpos - backwardprev * _substep;
+	float dveltemp = volumegradient(_Fieldinitnumber, _Fieldinitname, finalpos);
+	float veltemp = volumesample(_Fieldinitnumber, _Fieldinitname, finalpos);
+	float prev_value = 0.5 * (dveltemp + veltemp);
+	//vector vel = volumesample(_Velnumber, _Velname, finalpos);
+	//vel = vel * blend_coeff + (1.0-blend_coeff) * prev_value;
 
+	return prev_value;
+	
+}
 vector updateBackwardVectorDMC(int _Velnumber;string _Velname;vector _Pos;float _volumesize;float _substep){
     float h = _volumesize;
 	vector pos = _Pos;
@@ -162,7 +271,7 @@ float estimateVectorDistortion(int _backwardvN;string _backwardvname;int _forwar
 	float substep = _substep;
 	//backward then forward
 	vector backward = volumesamplev(_backwardvN, _backwardvname, pos); 
-	vector back_Pos = pos - backward * substep;
+	vector back_Pos = pos + backward * substep;
 	vector forwardBF = volumesamplev(_forwardvN, _forwardvname, back_Pos);
 	vector Fwd_Pos = back_Pos + forwardBF * substep;
 	float dist_bf = distance(pos,Fwd_Pos);
@@ -170,7 +279,7 @@ float estimateVectorDistortion(int _backwardvN;string _backwardvname;int _forwar
 	vector forward = volumesamplev(_forwardvN, _forwardvname, pos);
 	vector fwd_Pos = pos + forward * substep;
 	vector backwardFB = volumesamplev(_backwardvN, _backwardvname, fwd_Pos); 
-	vector Back_Pos = fwd_Pos - backwardFB * substep;
+	vector Back_Pos = fwd_Pos + backwardFB * substep;
 	float dist_fb = distance(pos,Back_Pos);
 
 	return VDistortion = max(dist_bf, dist_fb);
@@ -181,7 +290,7 @@ float estimateFieldDistortion(int _VolumeN;string _Volumename;int _backwardvN;st
 	float substep = _substep;
 	//backward then forward
 	vector backward = volumesamplev(_backwardvN, _backwardvname, pos); 
-	vector back_Pos = pos - backward * substep;
+	vector back_Pos = pos + backward * substep;
 	vector forwardBF = volumesamplev(_forwardvN, _forwardvname, back_Pos);
 	vector Fwd_Pos = back_Pos + forwardBF * substep;
 	float distBF = volumesample(_VolumeN, _Volumename, Fwd_Pos);
@@ -189,7 +298,7 @@ float estimateFieldDistortion(int _VolumeN;string _Volumename;int _backwardvN;st
 	vector forward = volumesamplev(_forwardvN, _forwardvname, pos);
 	vector fwd_Pos = pos + forward * substep;
 	vector backwardFB = volumesamplev(_backwardvN, _backwardvname, fwd_Pos); 
-	vector Back_Pos = fwd_Pos - backwardFB * substep;
+	vector Back_Pos = fwd_Pos + backwardFB * substep;
 	float distFB = volumesample(_VolumeN, _Volumename, Back_Pos);
 
 	return FDistortion = max(distBF, distFB);
@@ -197,27 +306,25 @@ float estimateFieldDistortion(int _VolumeN;string _Volumename;int _backwardvN;st
 vector accumulateVelocity(int _VelchangeN;string _Velchangename;int _VelinitN;string _Velinitname;int _forwardvN;string _forwardvname;float _substep;vector _Pos;float _coeff){
 	vector pos = _Pos;
 	float coeff = _coeff;
-	vector forwardv = coeff * volumegradient(_forwardvN, _forwardvname, pos);
+	vector forwardv = coeff * volumesamplev(_forwardvN, _forwardvname, pos);
 	vector map_pos = pos + forwardv * _substep;
-	vector dvel = coeff * volumegradient(_VelchangeN, _Velchangename, map_pos);
-	vector velchange = volumesamplev(_VelchangeN, _Velchangename, pos);
+	vector dvel = coeff * volumegradientv(_VelchangeN, _Velchangename, map_pos);
+	vector velchange = volumesamplev(_VelchangeN, _Velchangename, map_pos);
 	vector sum = 0.5 * dvel + 0.5 * velchange;
 	vector dvelcity_init = dvelcity_init + sum;
 	return dvelcity_init;
 }
-void accumulateField(int _VolumechangeN;string _Volumechangename;int _VolumeinitN;string _Volumeinitname;int _forwardvN;string _forwardvname;float _substep;vector _Pos;float _coeff){
+float accumulateField(int _FieldchangeN;string _Fieldchangename;int _Fieldinitnumber;string _Fieldinitname;int _forwardvN;string _forwardvname;float _substep;vector _Pos;float _coeff){
 	vector pos = _Pos;
-	float coeff = 1.0f;
-	vector forwardv = coeff * volumegradient(_forwardvN, _forwardvname, pos);
+	float 	coeff = _coeff;
+	vector forwardv = coeff * volumesamplev(_forwardvN, _forwardvname, pos);
 	vector map_pos = pos + forwardv * _substep;
-	vector dvel = coeff * volumesample(_VolumechangeN, _Volumechangename, map_pos);
-	vector velchange = volumesample(_VolumechangeN, _Volumechangename, pos);
-	vector sum = 0.5 * dvel + 0.5 * velchange;
-	vector dvelcity_init = dvelcity_init + sum;
+	float dvel = coeff * volumegradient(_FieldchangeN, _Fieldchangename, map_pos);
+	float velchange = volumesample(_FieldchangeN, _Fieldchangename, pos);
+	float sum = 0.5 * dvel + 0.5 * velchange;
+	float dvelcity_init = dvelcity_init + sum;
 	return dvelcity_init;
 }
-void ApplyChangeForwardMap(){}
-void reinitializeMapping(){}
 
 void advanceBimocq(){
 	float proj_coeff = 2.f;
