@@ -4,7 +4,7 @@
 ## Abstract
    This is an implementation of the smoke fluid settlement based on theBiMocq2(2 levels of Bi-directionalmapping of convective quantities) method to obtain a more detailed, more precise and stable fluid sim-ulation.  
    This implementation is done using houdini so that Houdini users can easily apply it in theirdaily work.  This implementation is slightly different from the original paper.  
-   The order of the algorithmsteps is slightly adjusted, and the final method of affecting the speed variable is changed to better fitHoudini’s original smoke simulation.
+   The order of the algorithmsteps is slightly adjusted, and the final method of affecting the speed variable is changed to better fit Houdini’s original smoke simulation.
 
 
 
