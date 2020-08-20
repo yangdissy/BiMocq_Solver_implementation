@@ -3,7 +3,9 @@
 
 ## Abstract
 
-    This is an implementation of the smoke fluid settlement based on theBiMocq2(2 levels of Bi-directionalmapping of convective quantities) method to obtain a more detailed, more precise and stable fluid sim-ulation.  This implementation is done using houdini so that Houdini users can easily apply it in theirdaily work.  This implementation is slightly different from the original paper.  The order of the algorithmsteps is slightly adjusted, and the final method of affecting the speed variable is changed to better fitHoudini’s original smoke simulation.
+    This is an implementation of the smoke fluid settlement based on theBiMocq2(2 levels of Bi-directionalmapping of convective quantities) method to obtain a more detailed, more precise and stable fluid sim-ulation.  
+    This implementation is done using houdini so that Houdini users can easily apply it in theirdaily work.  This implementation is slightly different from the original paper.  
+    The order of the algorithmsteps is slightly adjusted, and the final method of affecting the speed variable is changed to better fitHoudini’s original smoke simulation.
 
 ![the left one is the Houdini preset billowy Smoke. The right one is the result of replacing the MacCormack advection in the preset with BiMocq2](Snipaste_2020-08-19_21-28-57.png)   
     The BiMocq2 method is implemented in Houdini mainly to get a more accurate solution with more details. From the results, the original setting is reached. The BiMocq2 method not only gets more details under the same conditions, which leads to the better visual richness, but also leads to more turbulence.
