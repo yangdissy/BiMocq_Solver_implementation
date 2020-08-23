@@ -10,7 +10,7 @@
 
 
 
-![the left one is the Houdini preset billowy Smoke. The right one is the result of replacing the MacCormack advection in the preset with BiMocq2](Images\Snipaste_2020-08-19_21-28-57.png)   
+![the left one is the Houdini preset billowy Smoke. The right one is the result of replacing the MacCormack advection in the preset with BiMocq2](https://github.com/yangdissy/BiMocq_Solver_implementation/blob/master/Images/Snipaste_2020-08-19_21-28-57.png)   
     The BiMocq2 method is implemented in Houdini mainly to get a more accurate solution with more details. From the results, the original setting is reached. The BiMocq2 method not only gets more details under the same conditions, which leads to the better visual richness, but also leads to more turbulence.
 
 ![The left one is Semi-Lagrangian. The right one is BiMocq2](Images\Snipaste_2020-08-20_09-59-26.png)
