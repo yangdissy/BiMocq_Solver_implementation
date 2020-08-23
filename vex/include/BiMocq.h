@@ -186,7 +186,7 @@ vector compensateVelocity(int _Velnumber;string _Velname;int _Velinitnumber;stri
 	vector dcurrentvel = volumegradientv(_Velnumber,_Velname,finalpos);
 	vector sum = 0.5*currentvel + 0.5*dcurrentvel;
 
-	vector velinit = volumesamplev(_Velinitnumber, _Velinitname, pos);
+	vector velinit = volumesamplev(_Velinitnumber, _Velinitname, finalpos);
 	
 	vector Vtemp = 0.5 * (velinit - sum);
 
@@ -212,16 +212,14 @@ vector DoubleAdvectVelocity(int _Velnumber;string _Velname;int _Veltempnumber;st
 	//x = Xt (xд)
 	vector backwardprev = volumesamplev(_backwardPrevN, __backwardPrevname, midpos);	
 	vector finalpos = midpos - backwardprev * _substep;
-
-
-	//vector vel = volumesamplev(_Velnumber, _Velname,pos);
-	//vector velprev = volumesamplev(_Velnumber, _Velname,finalpos);
-	//vector velcurrent = volumesamplev(_Velnumber, _Velname,midpos);
-	//vector velerror =  0.5*(velcurrent+velprev);
+	// vector vel = volumesamplev(_Velnumber, _Velname,pos);
+	// vector velprev = volumesamplev(_Velnumber, _Velname,finalpos);
+	// vector velcurrent = volumesamplev(_Velnumber, _Velname,midpos);
+	// vector velerror = _substep * (vel - 0.5*(velcurrent+velprev));
 
 	vector dvelprev = _substep * volumesamplev(_Veltempnumber,_Veltempname,finalpos);
 	vector dvelcurrent =  _substep * volumesamplev(_Veltempnumber,_Veltempname,midpos);
-	vector prev_value =  dvelprev + dvelcurrent ;
+	vector prev_value =  dvelprev + dvelcurrent;
 
 	return prev_value;
 	
@@ -340,20 +338,6 @@ void advanceBimocq(){
 		proj_coeff = 1.f;
 	}
 }
-
-
-
-void printTestEscaping() {
-	string a = "from myLib.h: \\n \\t v\@P, %04.2f";
-	printf(a + "\n");
-}
-
-void myRemPoints(int ptnum) {
-	if (ptnum < 30)
-		removepoint(0, ptnum);
-}
-
-
 
 
 #endif // end of include guards
